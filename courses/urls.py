@@ -12,10 +12,10 @@ router = DefaultRouter()
 router.register(r'categories', CategoryViewSet)
 router.register(r'subcategories', SubCategoryViewSet)
 router.register(r'list', CourseViewSet)
-router.register(r'enrollments', EnrollmentViewSet, basename='enrollment')
+router.register(r'enroll', EnrollmentViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('enroll/', CourseEnrollmentView.as_view(), name='course-enrollment'),
+   
 ]
 

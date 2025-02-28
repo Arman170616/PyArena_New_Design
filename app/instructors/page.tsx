@@ -78,7 +78,7 @@ export default function InstructorsPage() {
   ]
 
   return (
-    <div className="container py-10">
+    <div className="container px-4 py-8 md:px-6 lg:px-8">
       <div className="flex items-center mb-6">
         <Button variant="ghost" size="sm" asChild className="mr-4">
           <Link href="/">

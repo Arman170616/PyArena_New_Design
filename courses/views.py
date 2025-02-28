@@ -70,27 +70,49 @@ class CourseViewSet(viewsets.ModelViewSet):
             serializer.save(course=course, user=user)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 class EnrollmentViewSet(viewsets.ModelViewSet):
+    queryset = Enrollment.objects.all()
     serializer_class = EnrollmentSerializer
-    permission_classes = [permissions.IsAuthenticated, IsEnrollmentOwnerOrAdmin]
-    
-    def get_queryset(self):
-        user = self.request.user
-        if user.is_staff:
-            return Enrollment.objects.all()
-        return Enrollment.objects.filter(user=user)
+    permission_classes = [permissions.AllowAny]  # Adjust this based on your authentication requirements
     
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        # You can add any additional logic here before saving the enrollment
+        serializer.save()
 
 class CourseEnrollmentView(generics.CreateAPIView):
     serializer_class = EnrollmentSerializer
     permission_classes = [permissions.AllowAny]
     
+    def create(self, request, *args, **kwargs):
+        # Get the course based on the provided course ID
+        try:
+            course = Course.objects.get(id=request.data.get('course'))
+        except Course.DoesNotExist:
+            return Response(
+                {"message": "Course not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Create a new data dictionary with the course object
+        enrollment_data = {
+            'course': course.id,
+            'name': request.data.get('name'),
+            'phone_number': request.data.get('phoneNumber'),
+            'email': request.data.get('email'),
+            'comment': request.data.get('comment'),
+        }
+        
+        serializer = self.get_serializer(data=enrollment_data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(
+            {"message": "Enrollment successful"},
+            status=status.HTTP_201_CREATED,
+            headers=headers
+        )
+    
     def perform_create(self, serializer):
-        # For anonymous users, just create the enrollment
         # For authenticated users, associate with their account
         user = self.request.user if self.request.user.is_authenticated else None
         serializer.save(user=user)
-

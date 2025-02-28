@@ -89,15 +89,14 @@ class CourseReview(models.Model):
         return f"Review for {self.course.title} by {self.user.username}"
 
 class Enrollment(models.Model):
-    """Model for course enrollments"""
     STATUS_CHOICES = (
         ('pending', 'Pending'),
         ('approved', 'Approved'),
         ('rejected', 'Rejected'),
     )
     
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='enrollments')
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='enrollments')
+    course = models.ForeignKey('Course', on_delete=models.CASCADE, related_name='enrollments')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='enrollments', null=True, blank=True)
     name = models.CharField(max_length=100)
     phone_number = models.CharField(max_length=20)
     email = models.EmailField()

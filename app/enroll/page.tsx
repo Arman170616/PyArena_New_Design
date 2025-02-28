@@ -2,12 +2,11 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 
-import { Layout } from "@/components/layout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -15,23 +14,47 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/components/ui/use-toast"
 
-// This would typically come from an API call
-const courses = [
-  { id: 1, title: "Python for Beginners" },
-  { id: 2, title: "Web Development Bootcamp" },
-  { id: 3, title: "Data Science Fundamentals" },
-]
+interface Course {
+  id: number
+  title: string
+}
 
 export default function EnrollPage() {
   const router = useRouter()
   const { toast } = useToast()
+  const [courses, setCourses] = useState<Course[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [formData, setFormData] = useState({
     name: "",
-    phoneNumber: "",
+    phone_number: "",
     email: "",
     course: "",
     comment: "",
   })
+
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const response = await fetch("http://127.0.0.1:8000/api/courses/list/")
+        if (!response.ok) {
+          throw new Error("Failed to fetch courses")
+        }
+        const data = await response.json()
+        setCourses(data.results)
+        setIsLoading(false)
+      } catch (err) {
+        console.error("Error fetching courses:", err)
+        toast({
+          title: "Error",
+          description: "Failed to load courses. Please try again later.",
+          variant: "destructive",
+        })
+        setIsLoading(false)
+      }
+    }
+
+    fetchCourses()
+  }, [toast])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -46,7 +69,7 @@ export default function EnrollPage() {
     e.preventDefault()
 
     try {
-      const response = await fetch("/api/courses/enroll/", {
+      const response = await fetch("http://127.0.0.1:8000/api/courses/enroll/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -55,20 +78,28 @@ export default function EnrollPage() {
       })
 
       if (response.ok) {
+        const data = await response.json()
         toast({
           title: "Enrollment Successful",
-          description: "Thank you for enrolling. We'll contact you soon with further details.",
+          description: data.message || "Thank you for enrolling. We'll contact you soon with further details.",
         })
         router.push("/")
       } else {
-        const errorData = await response.json()
+        let errorMessage = "An error occurred. Please try again."
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.message || errorData.detail || errorMessage
+        } catch (error) {
+          console.error("Error parsing error response:", error)
+        }
         toast({
           title: "Enrollment Failed",
-          description: errorData.message || "An error occurred. Please try again.",
+          description: errorMessage,
           variant: "destructive",
         })
       }
     } catch (error) {
+      console.error("Error during enrollment:", error)
       toast({
         title: "Enrollment Failed",
         description: "An error occurred. Please try again.",
@@ -77,8 +108,12 @@ export default function EnrollPage() {
     }
   }
 
+  if (isLoading) {
+    return <div className="container px-4 py-8 md:px-6 lg:px-8">Loading courses...</div>
+  }
+
   return (
-    <Layout>
+    <div className="container px-4 py-8 md:px-6 lg:px-8">
       <Button variant="ghost" size="sm" asChild className="mb-6">
         <Link href="/">
           <ArrowLeft className="mr-2 h-4 w-4" />
@@ -88,15 +123,15 @@ export default function EnrollPage() {
 
       <h1 className="text-3xl font-bold mb-6">Enroll Now</h1>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6 max-w-md">
         <div>
           <Label htmlFor="name">Name *</Label>
           <Input id="name" name="name" value={formData.name} onChange={handleChange} required />
         </div>
 
         <div>
-          <Label htmlFor="phoneNumber">Phone Number *</Label>
-          <Input id="phoneNumber" name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} required />
+          <Label htmlFor="phone_number">Phone Number *</Label>
+          <Input id="phone_number" name="phone_number" value={formData.phone_number} onChange={handleChange} required />
         </div>
 
         <div>
@@ -127,7 +162,7 @@ export default function EnrollPage() {
 
         <Button type="submit">Submit Enrollment</Button>
       </form>
-    </Layout>
+    </div>
   )
 }
 
